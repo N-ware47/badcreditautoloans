@@ -40,3 +40,8 @@
 Thumbs.db
 node_modules/
 vendor/
+
+# WordPress directory placeholder files
+/wp-content/index.php
+/wp-content/plugins/index.php
+/wp-content/themes/index.php
