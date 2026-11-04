@@ -1,0 +1,42 @@
+
+# WordPress core
+/wp-admin/
+/wp-includes/
+/wp-*.php
+/index.php
+/xmlrpc.php
+/license.txt
+/readme.html
+
+# Sensitive configuration
+/wp-config.php
+/wp-config-*.php
+/.env
+/.env.*
+
+# Ignore third-party plugins and themes
+/wp-content/plugins/*
+/wp-content/themes/*
+
+# Allow custom plugins and themes later
+# !/wp-content/plugins/my-custom-plugin/
+# !/wp-content/themes/my-child-theme/
+
+# Media, cache, and backups
+/wp-content/uploads/
+/wp-content/cache/
+/wp-content/upgrade/
+/wp-content/backups/
+/wp-content/ai1wm-backups/
+/wp-content/wflogs/
+
+# Other sensitive or generated files
+*.sql
+*.sql.gz
+*.log
+*.zip
+*.bak
+.DS_Store
+Thumbs.db
+node_modules/
+vendor/
