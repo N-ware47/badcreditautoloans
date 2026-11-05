@@ -1,4 +1,8 @@
 
+# ==========================================
+# BAD CREDIT AUTO LOANS - WORDPRESS GITIGNORE
+# ==========================================
+
 # WordPress core
 /wp-admin/
 /wp-includes/
@@ -13,14 +17,23 @@
 /wp-config-*.php
 /.env
 /.env.*
+**/.env
+**/.env.*
 
-# Ignore third-party plugins and themes
+# Third-party plugins and themes
 /wp-content/plugins/*
 /wp-content/themes/*
 
-# Allow custom plugins and themes later
+# Allow custom Gutenberg child theme
+!/wp-content/themes/badcreditautoloans-child/
+
+# Allow custom plugins in the future
 # !/wp-content/plugins/my-custom-plugin/
-# !/wp-content/themes/my-child-theme/
+
+# Local development files
+/.local/
+.vscode/
+.idea/
 
 # Media, cache, and backups
 /wp-content/uploads/
@@ -30,16 +43,25 @@
 /wp-content/ai1wm-backups/
 /wp-content/wflogs/
 
-# Other sensitive or generated files
+# Database exports and sensitive files
 *.sql
 *.sql.gz
 *.log
 *.zip
 *.bak
-.DS_Store
-Thumbs.db
+*.backup
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dependencies
 node_modules/
 vendor/
+
+# Operating system files
+.DS_Store
+Thumbs.db
 
 # WordPress directory placeholder files
 /wp-content/index.php
