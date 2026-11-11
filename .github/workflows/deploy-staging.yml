@@ -21,7 +21,7 @@ jobs:
   validate:
     name: Validate Gutenberg Child Theme
     runs-on: ubuntu-latest
-
+    environment: staging 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
