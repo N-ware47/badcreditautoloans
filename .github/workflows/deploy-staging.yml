@@ -1,0 +1,57 @@
+
+name: Bad Credit Auto Loans - Staging
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "wp-content/themes/badcreditautoloans-child/**"
+      - ".github/workflows/deploy-staging.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: badcreditautoloans-staging
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Gutenberg Child Theme
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: none
+
+      - name: Validate PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find wp-content/themes/badcreditautoloans-child \
+            -type f -name '*.php' -print0 |
+          while IFS= read -r -d '' file; do
+            php -l "$file"
+          done
+
+      - name: Verify required theme files
+        shell: bash
+        run: |
+          set -euo pipefail
+          THEME="wp-content/themes/badcreditautoloans-child"
+
+          test -f "$THEME/style.css"
+          test -f "$THEME/functions.php"
+          test -f "$THEME/theme.json"
+
+          echo "Theme validation passed."
+          echo "SSH deployment is not enabled yet."
+          echo "No SiteGround files were modified."
