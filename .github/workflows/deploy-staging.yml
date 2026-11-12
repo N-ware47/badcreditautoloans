@@ -138,7 +138,7 @@ jobs:
           test "$SSH_USER" = "u52-d9vb1kwmvkf1"
           test "$STAGING_PATH" = "/home/customer/www/staging2.badcreditautoloans.net/public_html/wp-content/themes/badcreditautoloans-child/"
 
-          rsync -avzn --itemize-changes \
+          rsync -avz --itemize-changes \
             -e "ssh -i $HOME/.ssh/id_siteground -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -p $SSH_PORT" \
             wp-content/themes/badcreditautoloans-child/ \
             "$SSH_USER@$SSH_HOST:$STAGING_PATH"
