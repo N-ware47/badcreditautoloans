@@ -55,3 +55,42 @@ jobs:
           echo "Theme validation passed."
           echo "SSH deployment is not enabled yet."
           echo "No SiteGround files were modified."
+
+
+  ssh_test:
+    name: Test SiteGround SSH Connection
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Configure SSH key
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_siteground
+          chmod 600 ~/.ssh/id_siteground
+
+      - name: Test SSH connection (read only)
+        shell: bash
+        env:
+          SSH_HOST: ${{ vars.STAGING_SSH_HOST }}
+          SSH_PORT: ${{ vars.STAGING_SSH_PORT }}
+          SSH_USER: ${{ vars.STAGING_SSH_USER }}
+          STAGING_PATH: ${{ vars.STAGING_THEME_PATH }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' '[ssh.badcreditautoloans.net]:18765 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHguew7s8qU9WCyUvstxqvFrCOmPFrDxILOjIQHRPYyf' > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/id_siteground \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -p "$SSH_PORT" \
+            "$SSH_USER@$SSH_HOST" \
+            "test -d '$STAGING_PATH' && echo 'Staging theme directory exists'"
+
