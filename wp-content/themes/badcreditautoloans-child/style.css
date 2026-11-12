@@ -334,3 +334,15 @@ body a.bc-text-link-light { color: #dbe5d5; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
 }
+
+
+
+/* Test new homepage button design */
+.wp-block-button__link {
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+.wp-block-button__link:hover {
+    transform: translateY(-3px);
+}
