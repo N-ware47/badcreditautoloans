@@ -6,7 +6,7 @@ The WordPress team manages Gutenberg pages and Rank Math SEO in the SiteGround W
 
 The [staging page deployment guide](docs/STAGING-PAGES.md) covers the separate manual page workflow, first-time adoption, approval setup, verification and content rollback. Page imports default to dry-run. Existing pages receive content updates only; Rank Math remains under dashboard control. The automatic child-theme workflow is unchanged.
 
-See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) for this workflow, the project structure, request flow, configuration, and scan findings. Live CMS access and content synchronization have not been established.
+See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) for the project structure, request flow, configuration, and initial scan findings. The [staging page deployment guide](docs/STAGING-PAGES.md) records the current verified inspection and dry-run results. Production CMS synchronization remains separate work.
 
 ## Local homepage
 

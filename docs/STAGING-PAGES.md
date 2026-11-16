@@ -5,12 +5,29 @@ This system targets only `https://staging2.badcreditautoloans.net` at
 It never imports a database, plugins, uploads, WordPress options, or SEO metadata.
 The existing automatic child-theme workflow remains separate and unchanged.
 
-## Current review checkpoint
+## Current verification checkpoint - November 17, 2026
 
-All implementation and verification so far took place locally. No GitHub push,
-SSH connection, staging upload, workflow run, WordPress apply, or production access
-was performed. Server behavior still needs a staging dry-run and an explicitly
-approved first apply; offline tests cannot establish hosting compatibility.
+The [staging inspection](https://github.com/N-ware47/badcreditautoloans/actions/runs/43909286312)
+and [full deployment dry-run](https://github.com/N-ware47/badcreditautoloans/actions/runs/43909692396)
+both passed through GitHub Actions. The Linux runner passed all 37 offline safety
+checks. Packaging, pinned SSH access, private upload, staging identity checks,
+the original content checksum, and the reviewed deployment plan were verified.
+
+Page 21 is the published homepage with slug and title `home`. Its full-state
+baseline is `c7b82898b5a8eeb9116ffb4b675221be8802c0b975014df1015486a258f3e202`,
+now recorded in the manifest. The preview reported `action: unchanged`: staging
+already contains the exported homepage content. A later dashboard change can
+invalidate this snapshot and must be inspected and reviewed before another run.
+
+The staging environment's `STAGING_PAGE_EDITOR_ID` is configured as `1`, after
+verifying permission to edit page 21 and save unfiltered HTML. SiteGround aliases
+the login home directory to `/home/customer`; remote scripts now resolve that
+alias before checking private release paths. Release symlinks remain forbidden.
+
+No apply was requested or executed. The dry-run wrote no database rows, metadata,
+backups, or deployment ledger. Production was not accessed. Anonymous HTTP access
+to staging returns `401` with a Basic authentication challenge; browser and
+Gutenberg editor verification still require an authenticated staging session.
 
 `home-staging.json` was valid JSON preceded by a UTF-8 BOM (`EF BB BF`). PHP's
 `json_decode()` rejected that marker. The original `home.json` also has a BOM.
@@ -90,10 +107,11 @@ staging editor after apply to check for invalid-block warnings.
 
 ## 2. First staging inspection (requires approval to upload/run)
 
-`content/pages-staging.json` initially has page 21, a **provisional** slug `home`,
-and `baseline_sha256: null`. These are not verified server facts. Apply and the new
-deployment dry-run stop until an actual staging inspection supplies the baseline.
-Do not use local homepage ID 6 as a staging ID.
+Before first adoption, an existing page needs a verified staging ID, slug and
+full-state baseline. The manifest originally used provisional page 21, slug `home`,
+and `baseline_sha256: null`; the November 17 inspection verified that identity and
+supplied the baseline recorded above. A new adoption must likewise stop until its
+staging inspection succeeds. Do not use local homepage ID 6 as a staging ID.
 
 After the user approves publishing these changes to GitHub and running the
 inspection, run **Staging Gutenberg Pages (manual)** on `main` with operation
