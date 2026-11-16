@@ -8,7 +8,7 @@
             "file": "content/home-staging.json",
             "title": "Home",
             "existing_id": 21,
-            "baseline_sha256": null,
+            "baseline_sha256": "c7b82898b5a8eeb9116ffb4b675221be8802c0b975014df1015486a258f3e202",
             "front_page": true
         }
     ]
