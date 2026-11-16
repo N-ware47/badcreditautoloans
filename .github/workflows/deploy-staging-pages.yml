@@ -55,7 +55,7 @@ jobs:
           find scripts tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php scripts/validate-pages.php
           php tests/page-deployment-test.php
-          bash -n scripts/remote-pages.sh scripts/configure-pages-ssh.sh
+          for script in scripts/remote-pages.sh scripts/configure-pages-ssh.sh; do bash -n "$script"; done
 
   preview:
     name: Staging inspection or mandatory dry-run
@@ -102,7 +102,9 @@ jobs:
           set -euo pipefail
           umask 077
           [[ "$HOME" =~ ^/[a-zA-Z0-9_./-]+$ && "$HOME" != *..* && "$HOME" != */public_html* ]]
-          [[ "$(realpath "$HOME")" == "$HOME" ]]
+          private_home=$(realpath "$HOME")
+          [[ "$private_home" =~ ^/[a-zA-Z0-9_./-]+$ && "$private_home" != *..* && "$private_home" != */public_html* ]]
+          export HOME="$private_home"
           parent="$HOME/bcal-page-releases"
           [[ ! -L "$parent" ]]
           mkdir -p "$parent"
@@ -120,6 +122,9 @@ jobs:
           ssh "${ssh_args[@]}" "$destination" "bash -s -- $release $bundle_hash $mode $PAGE $EDITOR_ID" <<'REMOTE' | tee page-preview.log
           set -euo pipefail
           umask 077
+          private_home=$(realpath "$HOME")
+          [[ "$private_home" =~ ^/[a-zA-Z0-9_./-]+$ && "$private_home" != *..* && "$private_home" != */public_html* ]]
+          export HOME="$private_home"
           release=$1
           [[ "$release" == "$HOME"/bcal-page-releases/* && ! -L "$release" && "$(realpath "$release")" == "$release" ]]
           [[ "$2" =~ ^[a-f0-9]{64}$ ]]

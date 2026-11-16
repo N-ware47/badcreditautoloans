@@ -2,6 +2,9 @@
 # Runs only from a private release uploaded by the manual page workflow.
 set -euo pipefail
 umask 077
+private_home=$(realpath "${HOME:?Private HOME directory required}")
+[[ "$private_home" =~ ^/[a-zA-Z0-9_./-]+$ && "$private_home" != *..* && "$private_home" != */public_html* ]]
+export HOME="$private_home"
 operation=${1:-dry-run}
 release=${2:?Private release path required}
 selection=${3:-all}
