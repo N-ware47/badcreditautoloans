@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "target_url": "https://staging2.badcreditautoloans.net",
+    "pages": [
+        {
+            "key": "home",
+            "slug": "home",
+            "file": "content/home-staging.json",
+            "title": "Home",
+            "existing_id": 21,
+            "baseline_sha256": null,
+            "front_page": true
+        }
+    ]
+}

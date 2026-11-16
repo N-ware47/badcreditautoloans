@@ -2,7 +2,9 @@
 
 WordPress development project for badcreditautoloans.net
 
-The WordPress team manages pages, posts, and Elementor layouts in the SiteGround WordPress CMS. Localhost, VS Code, and AI support content retrieval, design work, writing, and local testing. GitHub versions custom code and structured content exports.
+The WordPress team manages Gutenberg pages and Rank Math SEO in the SiteGround WordPress dashboard. Localhost, VS Code, and Codex support content editing and local testing. GitHub versions custom code and Gutenberg content exports.
+
+The [staging page deployment guide](docs/STAGING-PAGES.md) covers the separate manual page workflow, first-time adoption, approval setup, verification and content rollback. Page imports default to dry-run. Existing pages receive content updates only; Rank Math remains under dashboard control. The automatic child-theme workflow is unchanged.
 
 See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) for this workflow, the project structure, request flow, configuration, and scan findings. Live CMS access and content synchronization have not been established.
 

@@ -1,0 +1,208 @@
+name: Staging Gutenberg Pages (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Inspect first-time homepage adoption, dry-run, or request approved apply
+        type: choice
+        required: true
+        default: dry-run
+        options:
+          - dry-run
+          - inspect-home
+          - apply
+      page:
+        description: Stable manifest key, or all
+        type: string
+        required: true
+        default: home
+      confirmation:
+        description: For apply only, type APPLY STAGING PAGES
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: badcreditautoloans-staging
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    name: Validate local page artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+      - name: Validate request and content
+        shell: bash
+        env:
+          PAGE: ${{ inputs.page }}
+          OPERATION: ${{ inputs.operation }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          [[ "$PAGE" == all || "$PAGE" =~ ^[a-z][a-z0-9-]{0,79}$ ]]
+          if [[ "$OPERATION" == apply ]]; then [[ "$CONFIRMATION" == 'APPLY STAGING PAGES' ]]; fi
+          find scripts tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          php scripts/validate-pages.php
+          php tests/page-deployment-test.php
+          bash -n scripts/remote-pages.sh scripts/configure-pages-ssh.sh
+
+  preview:
+    name: Staging inspection or mandatory dry-run
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      release: ${{ steps.preview.outputs.release }}
+      plan_sha256: ${{ steps.preview.outputs.plan_sha256 }}
+    env:
+      SSH_HOST: ${{ vars.STAGING_SSH_HOST }}
+      SSH_PORT: ${{ vars.STAGING_SSH_PORT }}
+      SSH_USER: ${{ vars.STAGING_SSH_USER }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure pinned staging SSH connection
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+        run: bash scripts/configure-pages-ssh.sh
+      - name: Package reviewed page files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/package-pages.py pages.tar.gz
+          sha256sum pages.tar.gz > bundle-sha256.txt
+      - name: Upload to private directory and preview only
+        id: preview
+        shell: bash
+        env:
+          PAGE: ${{ inputs.page }}
+          OPERATION: ${{ inputs.operation }}
+          EDITOR_ID: ${{ vars.STAGING_PAGE_EDITOR_ID }}
+        run: |
+          set -euo pipefail
+          if [[ "$OPERATION" != inspect-home ]]; then [[ "$EDITOR_ID" =~ ^[1-9][0-9]*$ ]]; else EDITOR_ID=0; fi
+          release_id="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          [[ "$release_id" =~ ^[0-9]+-[0-9]+$ ]]
+          ssh_args=(-i "$HOME/.ssh/id_siteground_pages" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$SSH_PORT")
+          destination="$SSH_USER@$SSH_HOST"
+          release=$(ssh "${ssh_args[@]}" "$destination" "bash -s -- $release_id" <<'REMOTE'
+          set -euo pipefail
+          umask 077
+          [[ "$HOME" =~ ^/[a-zA-Z0-9_./-]+$ && "$HOME" != *..* && "$HOME" != */public_html* ]]
+          [[ "$(realpath "$HOME")" == "$HOME" ]]
+          parent="$HOME/bcal-page-releases"
+          [[ ! -L "$parent" ]]
+          mkdir -p "$parent"
+          chmod 700 "$parent"
+          release="$parent/$1"
+          mkdir -m 700 "$release"
+          printf '%s\n' "$release"
+          REMOTE
+          )
+          [[ "$release" =~ ^/[a-zA-Z0-9_./-]+/bcal-page-releases/[0-9]+-[0-9]+$ ]]
+          scp -i "$HOME/.ssh/id_siteground_pages" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -P "$SSH_PORT" pages.tar.gz "$destination:$release/pages.tar.gz"
+          bundle_hash=$(cut -d ' ' -f1 bundle-sha256.txt)
+          mode=dry-run
+          if [[ "$OPERATION" == inspect-home ]]; then mode=inspect-home; fi
+          ssh "${ssh_args[@]}" "$destination" "bash -s -- $release $bundle_hash $mode $PAGE $EDITOR_ID" <<'REMOTE' | tee page-preview.log
+          set -euo pipefail
+          umask 077
+          release=$1
+          [[ "$release" == "$HOME"/bcal-page-releases/* && ! -L "$release" && "$(realpath "$release")" == "$release" ]]
+          [[ "$2" =~ ^[a-f0-9]{64}$ ]]
+          printf '%s  %s\n' "$2" "$release/pages.tar.gz" | sha256sum -c -
+          tar -xzf "$release/pages.tar.gz" -C "$release" --no-same-owner --no-same-permissions
+          bash "$release/scripts/remote-pages.sh" "$3" "$release" "$4" '' "$5"
+          REMOTE
+          printf 'release=%s\n' "$release" >> "$GITHUB_OUTPUT"
+          if [[ "$mode" == dry-run ]]; then
+            scp -i "$HOME/.ssh/id_siteground_pages" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -P "$SSH_PORT" "$destination:$release/approved-plan.json" approved-plan.json
+            plan_hash=$(sha256sum approved-plan.json | cut -d ' ' -f1)
+            printf 'plan_sha256=%s\n' "$plan_hash" >> "$GITHUB_OUTPUT"
+          fi
+          printf 'Review staging preview for commit `%s` before approving apply.\n\n```text\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          cat page-preview.log >> "$GITHUB_STEP_SUMMARY"
+          printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-page-preview-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            page-preview.log
+            approved-plan.json
+            bundle-sha256.txt
+          retention-days: 14
+          if-no-files-found: ignore
+      - name: Remove runner SSH key
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/id_siteground_pages"
+
+  apply:
+    name: Apply reviewed staging page plan
+    if: inputs.operation == 'apply'
+    needs: preview
+    runs-on: ubuntu-latest
+    # Configure required reviewers and main-only deployments BEFORE enabling this environment.
+    environment: staging-pages-apply
+    env:
+      SSH_HOST: ${{ vars.STAGING_SSH_HOST }}
+      SSH_PORT: ${{ vars.STAGING_SSH_PORT }}
+      SSH_USER: ${{ vars.STAGING_SSH_USER }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Require explicit environment enablement
+        shell: bash
+        env:
+          ENABLED: ${{ vars.STAGING_PAGES_APPLY_ENABLED }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          [[ "$ENABLED" == true && "$CONFIRMATION" == 'APPLY STAGING PAGES' ]]
+      - name: Configure pinned staging SSH connection
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+        run: bash scripts/configure-pages-ssh.sh
+      - name: Recheck approved plan and apply staging content
+        shell: bash
+        env:
+          RELEASE: ${{ needs.preview.outputs.release }}
+          PLAN_HASH: ${{ needs.preview.outputs.plan_sha256 }}
+          PAGE: ${{ inputs.page }}
+          EDITOR_ID: ${{ vars.STAGING_PAGE_EDITOR_ID }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE" =~ ^/[a-zA-Z0-9_./-]+/bcal-page-releases/[0-9]+-[0-9]+$ ]]
+          [[ "$PLAN_HASH" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$PAGE" == all || "$PAGE" =~ ^[a-z][a-z0-9-]{0,79}$ ]]
+          [[ "$EDITOR_ID" =~ ^[1-9][0-9]*$ ]]
+          ssh -i "$HOME/.ssh/id_siteground_pages" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "bash $RELEASE/scripts/remote-pages.sh apply $RELEASE $PAGE $PLAN_HASH $EDITOR_ID" | tee page-apply.log
+          cat page-apply.log >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-page-apply-${{ github.run_id }}-${{ github.run_attempt }}
+          path: page-apply.log
+          retention-days: 14
+          if-no-files-found: ignore
+      - name: Remove runner SSH key
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/id_siteground_pages"
